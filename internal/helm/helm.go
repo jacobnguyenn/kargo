@@ -170,14 +170,17 @@ func getChartVersionsFromOCIRepo(
 // provided which satisfies the provided constraints. If no constraints are
 // specified (the empty string is passed), the absolute semantically greatest
 // version will be returned. The empty string will be returned when the provided
-// list of versions is nil or empty.
+// list of versions is nil/empty or all of the version is not a valid semver.
+// See https://semver.org/
 func getLatestVersion(versions []string, constraintStr string) (string, error) {
-	semvers := make([]*semver.Version, len(versions))
-	for i, version := range versions {
-		var err error
-		if semvers[i], err = semver.NewVersion(version); err != nil {
-			return "", fmt.Errorf("error parsing version %q: %w", version, err)
+	var semvers []*semver.Version
+	for _, version := range versions {
+		if semverVersion, err := semver.NewVersion(version); err == nil {
+			semvers = append(semvers, semverVersion)
 		}
+	}
+	if len(semvers) == 0 {
+		return "", nil
 	}
 	sort.Sort(semver.Collection(semvers))
 	if constraintStr == "" {
